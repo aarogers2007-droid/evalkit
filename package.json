@@ -1,0 +1,29 @@
+{
+  "name": "evalkit",
+  "version": "0.1.0",
+  "description": "A lightweight TypeScript harness for evaluating and safety-testing LLM outputs — graders, scorecards, and CI gating.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": { "evalkit": "./dist/cli.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "demo": "tsx examples/safety-suite.ts",
+    "demo:rag": "tsx examples/rag-suite.ts",
+    "cli": "tsx src/cli.ts"
+  },
+  "keywords": [
+    "llm", "eval", "evals", "ai-safety", "guardrails", "prompt-injection",
+    "red-team", "testing", "openai", "anthropic", "rag", "groundedness"
+  ],
+  "author": "AJ Rogers",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}
