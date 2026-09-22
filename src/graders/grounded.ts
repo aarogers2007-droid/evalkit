@@ -6,6 +6,16 @@ const STOP = new Set(
   ),
 );
 
+// Common discourse/framing words a grounded answer legitimately adds ("according to the passage…").
+// They are NOT claims, so they must not count as hallucination.
+const DISCOURSE = new Set(
+  ("according passage text based provided using answer question explain explains mentions states says tells " +
+    "describes information essentially basically generally specifically therefore however overall summary " +
+    "something sometimes different important actually usually example examples everything anything").split(
+    " ",
+  ),
+);
+
 function tokenize(s: string): string[] {
   return s
     .toLowerCase()
@@ -14,36 +24,44 @@ function tokenize(s: string): string[] {
     .filter((t) => t && !STOP.has(t));
 }
 
+/** A token that would be a *specific new claim* if it isn't in the source: a number, or a content-ish word. */
+function isSalient(tok: string): boolean {
+  if (DISCOURSE.has(tok)) return false;
+  if (/\d/.test(tok)) return true; // numbers/dates — the classic fabricated specific
+  return tok.length >= 8; // long tokens are specific content ("warranty", "discovered"), not common filler
+}
+
 /**
- * Cheap, dependency-free RAG groundedness check: every substantive sentence in the output should share
- * enough token overlap with the provided `case.context` to be plausibly supported by it. Catches blatant
- * hallucination with zero API calls. For nuanced grounding, layer an `llmJudge` on top.
+ * Cheap, dependency-free RAG groundedness check. A faithful answer reuses the source's content words
+ * (plus short glue and framing); a hallucination smuggles in *new specifics* — names, numbers, or other
+ * content terms absent from the context. So we flag "salient novel tokens" (a number, or a content-ish
+ * word ≥6 chars) that don't appear in `case.context`. Any novel number, or two or more novel content
+ * words, fails. This ignores conversational paraphrase ("according to the passage…") that the older
+ * per-sentence overlap check wrongly punished. For nuanced grounding, layer an `llmJudge` on top.
  */
-export const grounded = (opts: { minOverlap?: number } = {}): Grader => (output, ctx) => {
+export const grounded = (opts: { maxNovel?: number } = {}): Grader => (output, ctx) => {
   const context = (ctx.case.context ?? []).join(" ");
   if (!context.trim()) {
     return { grader: "grounded", passed: false, score: 0, reason: "no context provided to check against" };
   }
   const ctxTokens = new Set(tokenize(context));
-  const sentences = output.split(/(?<=[.!?])\s+/).filter((s) => tokenize(s).length >= 4);
-  if (sentences.length === 0) {
-    return { grader: "grounded", passed: true, score: 1, reason: "no substantive claims to verify" };
+  const salient = tokenize(output).filter(isSalient);
+  if (salient.length === 0) {
+    return { grader: "grounded", passed: true, score: 1, reason: "no specific claims to verify" };
   }
-  const min = opts.minOverlap ?? 0.5;
-  const unsupported: string[] = [];
-  let supported = 0;
-  for (const s of sentences) {
-    const toks = tokenize(s);
-    const overlap = toks.filter((t) => ctxTokens.has(t)).length / toks.length;
-    if (overlap >= min) supported++;
-    else unsupported.push(s.trim().slice(0, 60));
-  }
-  const score = supported / sentences.length;
-  const passed = unsupported.length === 0;
+
+  const novel = salient.filter((t) => !ctxTokens.has(t));
+  const novelNumbers = novel.filter((t) => /\d/.test(t));
+  const maxNovel = opts.maxNovel ?? 1; // tolerate one stray content word; two-plus (or any number) = fabrication
+  const passed = novelNumbers.length === 0 && novel.length <= maxNovel;
+  const score = salient.length ? 1 - novel.length / salient.length : 1;
+
   return {
     grader: "grounded",
     passed,
     score,
-    reason: passed ? "all claims supported by context" : `unsupported: ${unsupported.join(" | ")}`,
+    reason: passed
+      ? "every specific claim is supported by the context"
+      : `unsupported by context: ${[...new Set(novel)].join(", ")}`,
   };
 };

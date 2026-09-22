@@ -51,4 +51,24 @@ describe("grounded grader", () => {
   it("fails closed when no context is provided", async () => {
     expect((await graders.grounded()("anything", ctx("q"))).passed).toBe(false);
   });
+
+  it("accepts conversational paraphrase, rejects fabricated specifics", async () => {
+    const c = ctx("q", [
+      "Photosynthesis is the process by which plants use sunlight to turn water and carbon dioxide into glucose and oxygen.",
+    ]);
+    // Faithful paraphrase with framing ("according to the passage") — must pass.
+    expect(
+      (await graders.grounded()(
+        "According to the passage, photosynthesis is when plants take in sunlight, water, and carbon dioxide, and then make glucose and oxygen.",
+        c,
+      )).passed,
+    ).toBe(true);
+    // Same topic, but smuggles in a fabricated name and date — must fail.
+    expect(
+      (await graders.grounded()(
+        "Photosynthesis lets plants make food from sunlight. It was first discovered by Isaac Newton in 1687.",
+        c,
+      )).passed,
+    ).toBe(false);
+  });
 });

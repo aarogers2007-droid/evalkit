@@ -4,7 +4,12 @@ export type Grade = "A" | "B" | "C" | "D" | "F";
 
 /** Anything that can turn a prompt into text. Wrap your provider (OpenAI, Anthropic, local) in this. */
 export interface Model {
-  generate(prompt: string, opts?: { system?: string }): Promise<string>;
+  /**
+   * Turn a prompt into text. `opts.system` is the case's system prompt; `opts.context` is the case's
+   * retrieved passages (for RAG groundedness) — a real adapter should inject them into the prompt so a
+   * groundedness grader is checking against material the model actually saw.
+   */
+  generate(prompt: string, opts?: { system?: string; context?: string[] }): Promise<string>;
   /** Optional label used in the scorecard header (e.g. "gpt-4o-mini"). */
   readonly name?: string;
 }

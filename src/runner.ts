@@ -27,7 +27,7 @@ async function runCase(c: EvalCase, model: Model): Promise<CaseResult> {
   let output = "";
   let error: string | null = null;
   try {
-    output = await model.generate(c.input, { system: c.system });
+    output = await model.generate(c.input, { system: c.system, context: c.context });
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
