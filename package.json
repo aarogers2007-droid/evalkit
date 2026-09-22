@@ -20,7 +20,7 @@
     "red-team", "testing", "openai", "anthropic", "rag", "groundedness",
     "edtech", "coppa", "child-safety", "scorecard"
   ],
-  "author": "AJ Rogers",
+  "author": "Thomas Rogers",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.7.0",

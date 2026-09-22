@@ -200,4 +200,4 @@ your safety bar without someone noticing.
 
 ## License
 
-MIT © AJ Rogers
+MIT © Thomas Rogers
