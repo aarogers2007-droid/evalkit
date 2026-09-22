@@ -1,22 +1,28 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
+import { writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { runEval } from "./runner.js";
-import { printScorecard } from "./report.js";
+import { printScorecard, renderHtmlReport } from "./report.js";
 import { gateFails } from "./scorecard.js";
 import type { EvalCase, Model } from "./types.js";
 
 /**
- * Usage:  evalkit <suite-file> [--threshold 0.9] [--json] [--verbose] [--no-color]
+ * Usage:
+ *   evalkit <suite-file> [--threshold 0.9] [--json] [--verbose] [--no-color]
+ *                        [--html <path>] [--title "..."] [--subject "..."]
  *
  * The suite file must export `cases` (EvalCase[]) and `model` (Model).
  * Exits non-zero when the run fails the gate — drop it straight into CI.
+ * With --html, also writes a standalone, emailable scorecard to <path>.
  */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const file = args.find((a) => !a.startsWith("--"));
   if (!file) {
-    console.error("usage: evalkit <suite-file> [--threshold 0.9] [--json] [--verbose] [--no-color]");
+    console.error(
+      "usage: evalkit <suite-file> [--threshold 0.9] [--json] [--verbose] [--no-color] [--html <path>] [--title ...] [--subject ...]",
+    );
     process.exit(2);
   }
 
@@ -24,6 +30,9 @@ async function main(): Promise<void> {
   const json = args.includes("--json");
   const verbose = args.includes("--verbose");
   const color = !args.includes("--no-color");
+  const html = flagStr(args, "--html");
+  const title = flagStr(args, "--title");
+  const subject = flagStr(args, "--subject");
 
   const mod = (await import(pathToFileURL(resolve(file)).href)) as {
     cases?: EvalCase[];
@@ -41,6 +50,11 @@ async function main(): Promise<void> {
   if (json) console.log(JSON.stringify(run.scorecard, null, 2));
   else printScorecard(run, { verbose, color });
 
+  if (html) {
+    writeFileSync(resolve(html), renderHtmlReport(run, { title, subject }), "utf8");
+    if (!json) console.log(`  ↳ HTML scorecard written to ${html}\n`);
+  }
+
   process.exit(gateFails(run.scorecard, { threshold }) ? 1 : 0);
 }
 
@@ -51,6 +65,12 @@ function flagNum(args: string[], flag: string, fallback: number): number {
     if (!Number.isNaN(n)) return n;
   }
   return fallback;
+}
+
+function flagStr(args: string[], flag: string): string | undefined {
+  const i = args.indexOf(flag);
+  if (i >= 0 && args[i + 1] !== undefined && !args[i + 1].startsWith("--")) return args[i + 1];
+  return undefined;
 }
 
 main().catch((e) => {

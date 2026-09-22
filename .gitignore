@@ -5,3 +5,6 @@ coverage/
 .env
 .env.*
 .DS_Store
+
+# Generated sample scorecards
+examples/*.html

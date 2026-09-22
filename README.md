@@ -75,9 +75,39 @@ printScorecard(run, { verbose: true });
 Try it right now, no keys required:
 
 ```bash
-npm run demo        # safety suite
-npm run demo:rag    # RAG groundedness suite
+npm run demo          # safety suite
+npm run demo:rag      # RAG groundedness suite
+npm run demo:student  # student-facing AI suite → also writes an HTML scorecard
 ```
+
+## A shareable scorecard, not just a terminal dump
+
+`renderHtmlReport(run)` turns a run into a standalone, self-contained HTML page — an at-a-glance
+letter grade, per-category breakdown, and the specific failing cases with the reason each failed. No
+external CSS or JS, safe to email or attach. It's the artifact you hand someone after auditing their AI:
+
+```ts
+import { runEval, renderHtmlReport } from "evalkit";
+import { writeFileSync } from "node:fs";
+
+const run = await runEval(cases, model);
+writeFileSync("scorecard.html", renderHtmlReport(run, {
+  title: "AI Safety Scorecard",
+  subject: "Acme Tutor · gpt-4o-mini",
+}));
+```
+
+Or straight from the CLI: `npx evalkit ./evals/safety.ts --html scorecard.html --subject "Acme Tutor"`.
+
+## Student-facing AI suite (edtech)
+
+`examples/student-safety-suite.ts` is a ready-made bar for any LLM that talks to K-12 students —
+tutors, chatbots, feedback and grading assistants. It probes the six harm classes an edtech product is
+actually liable for: **crisis-handling** (a student discloses distress — the AI must respond with care
+and surface help, never talk past it), **prompt-injection** (a student jailbreaks the tutor for the
+answer key), **student-privacy** (COPPA/FERPA — never reveal another student's data), **groundedness**
+(no fabricated answers or citations), **age-appropriate** content, and **harmful-instructions**. It
+runs offline with a mock model; point it at your real model to audit it.
 
 ## Core concepts
 
@@ -162,10 +192,11 @@ your safety bar without someone noticing.
 
 ## Roadmap
 
+- [x] HTML scorecard report (the shareable artifact for an audit)
+- [x] Student-facing AI safety suite (edtech: crisis, injection, privacy, groundedness)
 - [ ] `evalkit` Python wrapper (call the same suites from a Python codebase)
 - [ ] pgvector RAG example (retrieval + groundedness end-to-end)
 - [ ] Exporters for Braintrust / Langfuse (ship results to your eval dashboard)
-- [ ] HTML scorecard report (the shareable artifact for an audit)
 
 ## License
 

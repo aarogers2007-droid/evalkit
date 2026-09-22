@@ -12,11 +12,13 @@
     "test": "vitest run",
     "demo": "tsx examples/safety-suite.ts",
     "demo:rag": "tsx examples/rag-suite.ts",
+    "demo:student": "tsx examples/student-safety-suite.ts",
     "cli": "tsx src/cli.ts"
   },
   "keywords": [
     "llm", "eval", "evals", "ai-safety", "guardrails", "prompt-injection",
-    "red-team", "testing", "openai", "anthropic", "rag", "groundedness"
+    "red-team", "testing", "openai", "anthropic", "rag", "groundedness",
+    "edtech", "coppa", "child-safety", "scorecard"
   ],
   "author": "AJ Rogers",
   "license": "MIT",
